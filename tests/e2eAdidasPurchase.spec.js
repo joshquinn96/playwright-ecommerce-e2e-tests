@@ -44,7 +44,7 @@ test('E2E Adidas Purchase', async ({ browser }) =>
       await password.fill('JoshUdemy123');
       await confirmPassword.fill('JoshUdemy123');
       await ageVerification.click();
-      await loginLink.click();
+      await page.waitForLoadState('networkidle');
       await page.goto('https://rahulshettyacademy.com/client/#/auth/login');
       await loginEmail.fill('quinn1@live.ie');
       await loginPassword.fill('JoshUdemy123');
