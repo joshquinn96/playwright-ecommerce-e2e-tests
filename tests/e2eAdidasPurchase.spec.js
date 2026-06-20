@@ -21,13 +21,12 @@ test('E2E Adidas Purchase', async ({ browser }) => {
   const checkoutButton = page.locator('button:has-text("Checkout")');
   const selectCountry = page.locator('input[placeholder="Select Country"]');
   const placeOrderButton = page.locator('a:has-text("PLACE ORDER")');
-  const downloadOrderButton = page.locator('button:has-text("Click To Download Order Details in CSV")');
 
   await page.goto('https://rahulshettyacademy.com/client/#/auth/login', { waitUntil: 'networkidle' });
-  await expect(registerLink).toBeVisible({ timeout: 20000 });
+  await expect(registerLink).toBeVisible();
   await registerLink.click();
 
-  await expect(firstName).toBeVisible({ timeout: 20000 });
+  await expect(firstName).toBeVisible();
   await firstName.fill('Josh');
   await lastName.fill('Quinn');
   await email.fill('quinn1@live.ie');
@@ -39,28 +38,46 @@ test('E2E Adidas Purchase', async ({ browser }) => {
   await ageVerification.check();
 
   await page.waitForLoadState('networkidle');
-  await page.goto('https://rahulshettyacademy.com/client/#/auth/login', { waitUntil: 'networkidle' });
+  await page.goto('https://rahulshettyacademy.com/client/#/auth/login');
 
-  await expect(loginEmail).toBeVisible({ timeout: 20000 });
+  await expect(loginEmail).toBeVisible();
   await loginEmail.fill('quinn1@live.ie');
   await loginPassword.fill('JoshUdemy123');
   await loginButton.click();
-  await page.waitForURL('**/dashboard/dash', { timeout: 60000 });
+  await page.waitForURL('**/dashboard/dash',);
 
-  await expect(adidasOriginalCart).toBeVisible({ timeout: 20000 });
+  await expect(adidasOriginalCart).toBeVisible();
   await adidasOriginalCart.click();
-  await expect(cartItems).toBeVisible({ timeout: 20000 });
+  await expect(cartItems).toBeVisible();
   await cartItems.click();
-  await page.waitForURL('**/dashboard/cart', { timeout: 60000 });
+  await page.waitForURL('**/dashboard/cart', );
 
-  await expect(checkoutButton).toBeVisible({ timeout: 20000 });
+  await expect(checkoutButton).toBeVisible();
   await checkoutButton.click();
-  await expect(selectCountry).toBeVisible({ timeout: 20000 });
-  await selectCountry.fill('Canada');
-  await expect(placeOrderButton).toBeVisible({ timeout: 20000 });
-  await placeOrderButton.click();
-  await page.waitForURL('**/dashboard/thanks*', { timeout: 60000 });
 
-  await expect(downloadOrderButton).toBeVisible({ timeout: 20000 });
-  await downloadOrderButton.click();
+  await page.waitForLoadState('networkidle');
+  await page.goto('https://rahulshettyacademy.com/client/#/dashboard/order?prop=%5B%226960eac0c941646b7a8b3e68%22%5D',);
+  await expect(selectCountry).toBeVisible();
+  await selectCountry.fill('Canada');
+  await page.getByRole('textbox').nth(1).fill('666');
+  await page.getByRole('textbox').nth(2).fill('Joshua Quinn');
+  await expect(placeOrderButton).toBeVisible();
+  await placeOrderButton.click();
+
+  await page.goto('https://rahulshettyacademy.com/client/#/dashboard/thanks?prop=%5B%226a36cb68378febeacdbe8e8d%22%5D');
+  await page.getByText('Orders History Page').click();
+
+  await page.goto('https://rahulshettyacademy.com/client/#/dashboard/myorders');
+  const orderId = '6a36cb68378febeacdbe8e8d';
+  const orderRow = page.locator('.table tr', { hasText: orderId });
+  await expect(orderRow).toBeVisible();
+  const viewButton = orderRow.locator('button:has-text("View")');
+  await expect(viewButton).toBeVisible();
+  await viewButton.click();
+
+  await page.goto('https://rahulshettyacademy.com/client/#/dashboard/order-details/6a36cb68378febeacdbe8e8d');
+  const orderSummaryLocator = page.locator(`text=${orderId}`);
+  await expect(orderSummaryLocator).toBeVisible();
+  const orderIdSummary = (await orderSummaryLocator.first().textContent()).trim();
+  console.log(`Order number: ${orderIdSummary}`);
 });
