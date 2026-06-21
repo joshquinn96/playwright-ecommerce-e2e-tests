@@ -1,7 +1,6 @@
-// @ts-check
-const { devices } = require('@playwright/test');
+import { defineConfig, devices } from '@playwright/test';
 
-const config = {
+export default defineConfig({
   testDir: './tests',
   retries: 0,
   
@@ -14,17 +13,9 @@ const config = {
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-
-    browserName : 'chromium',
-    headless : true,
-    screenshot : 'on',
-    trace : 'on',//off,on
-    
-    
-    
+    browserName: 'chromium',
+    headless: true,
+    screenshot: 'on',
+    trace: 'on', // off, on
   },
-
-
-};
-
-module.exports = config;
+});

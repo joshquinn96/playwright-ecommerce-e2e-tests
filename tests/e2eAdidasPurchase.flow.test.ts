@@ -1,4 +1,4 @@
-﻿const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 test('E2E Adidas Purchase', async ({ browser }) => {
   const page = await browser.newPage();
@@ -65,19 +65,19 @@ test('E2E Adidas Purchase', async ({ browser }) => {
   await placeOrderButton.click();
 
   await page.goto('https://rahulshettyacademy.com/client/#/dashboard/thanks?prop=%5B%226a36cb68378febeacdbe8e8d%22%5D');
+  //await page.goto('https://rahulshettyacademy.com/client/#/dashboard/thanks?prop=%{orderId}%22%5D');
+
   await page.getByText('Orders History Page').click();
 
   await page.goto('https://rahulshettyacademy.com/client/#/dashboard/myorders');
-  const orderId = '6a36cb68378febeacdbe8e8d';
+  const orderId = '6a38576d378febeacdc15ecd';
   const orderRow = page.locator('.table tr', { hasText: orderId });
   await expect(orderRow).toBeVisible();
   const viewButton = orderRow.locator('button:has-text("View")');
   await expect(viewButton).toBeVisible();
   await viewButton.click();
 
-  await page.goto('https://rahulshettyacademy.com/client/#/dashboard/order-details/6a36cb68378febeacdbe8e8d');
+  await page.goto('https://rahulshettyacademy.com/client/#/dashboard/order-details/6a38576d378febeacdc15ecd');
   const orderSummaryLocator = page.locator(`text=${orderId}`);
-  await expect(orderSummaryLocator).toBeVisible();
-  const orderIdSummary = (await orderSummaryLocator.first().textContent()).trim();
-  console.log(`Order number: ${orderIdSummary}`);
+  await expect(orderSummaryLocator).toHaveText(orderId);
 });

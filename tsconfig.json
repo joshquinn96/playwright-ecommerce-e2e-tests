@@ -6,7 +6,6 @@
     // "incremental": true,                   /* Enable incremental compilation */
     "target": "ES2020",                       /* Specify ECMAScript target version; updated from ES5 to ES2020 */
     "module": "commonjs",                     /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */
-    "allowJs": true,                            /* Allow JavaScript files so Playwright JS tests are picked up by tsc */
     "ignoreDeprecations": "6.0",
     // "lib": [],                             /* Specify library files to be included in the compilation. */
     // "allowJs": true,                       /* Allow javascript files to be compiled. */
