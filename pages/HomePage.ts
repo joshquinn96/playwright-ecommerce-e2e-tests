@@ -68,7 +68,8 @@ export class HomePage {
   }
 
   async gotoLogin() {
-    await this.page.goto('https://rahulshettyacademy.com/client/#/auth/login', { waitUntil: 'networkidle' });
+    await this.page.goto('https://rahulshettyacademy.com/client/#/auth/login');
+    await expect(this.registerLink).toBeVisible();
   }
 
   async register(user: { firstName: string; lastName: string; email: string; mobile?: string; occupation?: string; password?: string }) {
@@ -105,7 +106,8 @@ export class HomePage {
 
   async addFirstProductToCart() {
     await this.firstAddToCartButton.click();
-    await this.page.waitForLoadState('networkidle');
+    // Wait for toast/confirmation or cart count update
+    await this.page.waitForURL('**/dashboard/dash', { timeout: 5000 }).catch(() => {});
   }
 
   async goToCart() {

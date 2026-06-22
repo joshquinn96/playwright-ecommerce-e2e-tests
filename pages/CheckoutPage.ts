@@ -28,7 +28,7 @@ export class CheckoutPage {
     await this.cardNumberInput.fill(opts.cardNumber);
     await this.cvvInput.fill(opts.cvv);
     await this.cardNameInput.fill(opts.cardName);
-    await this.page.waitForLoadState('networkidle');
+    // Form is ready; no additional wait needed since fields are already filled
   }
 
   async placeOrder() {

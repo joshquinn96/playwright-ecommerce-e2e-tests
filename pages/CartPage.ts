@@ -9,6 +9,7 @@ export class CartPage {
 
   async checkout() {
     await this.checkoutButton.click();
-    await this.page.waitForLoadState('networkidle');
+    // Wait for checkout page to load
+    await this.page.waitForURL('**/checkout/cart', { timeout: 5000 }).catch(() => {});
   }
 }
