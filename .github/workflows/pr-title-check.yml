@@ -1,0 +1,29 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-pr-title:
+    name: Validate PR Title Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check title follows conventional commit format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern="^(feat|fix|chore|docs|refactor|test|style|perf|ci|revert)(\([^)]+\))?: [^[:space:]].+"
+          if [[ ! "$PR_TITLE" =~ $pattern ]]; then
+            echo "❌ PR title does not follow the required format."
+            echo ""
+            echo "Expected format: <type>(<scope>)?: <description>"
+            echo "Examples:        feat: add login page smoke test"
+            echo "                feat(auth): add login page smoke test"
+            echo ""
+            echo "Allowed types: feat, fix, chore, docs, refactor, test, style, perf, ci, revert"
+            echo ""
+            echo "Your title: \"$PR_TITLE\""
+            exit 1
+          fi
+          echo "✅ PR title format is valid: \"$PR_TITLE\""
