@@ -17,8 +17,5 @@
     "@playwright/test": "^1.40",
     "allure-playwright": "^2.0.0-beta.15",
     "typescript": "^5.4.5"
-  },
-  "dependencies": {
-    "exceljs": "^3.4.0"
   }
 }
