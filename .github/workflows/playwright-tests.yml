@@ -1,338 +1,42 @@
-﻿# name: Playwright Tests
+name: Playwright Tests
 
-# on:
-#   schedule:
-#     - cron: "0 9 * * *"
-#   workflow_dispatch:
+on:
+  workflow_dispatch:
 
-# env:
-#   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+permissions:
+  contents: read
 
-# jobs:
-#   playwright-tests:
-#     runs-on: windows-latest
-#     permissions:
-#       contents: read
-#     defaults:
-#       run:
-#         shell: bash
-#         working-directory: ./playwright_tests
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
-#     steps:
-#       - uses: actions/checkout@v4
+jobs:
+  playwright-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-#       - uses: actions/setup-node@v4
-#         with:
-#           node-version: "24"
-#           cache: "npm"
-#           cache-dependency-path: playwright_tests/package-lock.json
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
 
-#       - uses: actions/setup-python@v5
-#         with:
-#           python-version: "3.x"
+      - name: Install dependencies
+        run: npm ci
 
-#       - name: Install Python dependencies
-#         run: pip install -r ../.scripts/vehicle-sighting-servicebus/requirements.txt
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
 
-#       - name: Install Node dependencies
-#         run: npm ci
+      - name: Run Playwright tests
+        run: npx playwright test --workers=1
 
-#       - name: Install Playwright system deps
-#         run: npx playwright install-deps msedge
-
-#       - name: Run Playwright Tests
-#         run: npx playwright test --workers=1
-#         env:
-#           WEBCLIENT_LOGIN_URL: ${{ secrets.WEBCLIENT_LOGIN_URL }}
-#           WEBCLIENT_USERNAME: ${{ secrets.WEBCLIENT_USERNAME }}
-#           WEBCLIENT_PASSWORD: ${{ secrets.WEBCLIENT_PASSWORD }}
-#           BASE_URL: ${{ secrets.BASE_URL }}
-#           AUDIT_LOG_URL: ${{ secrets.AUDIT_LOG_URL }}
-#           GPM_URL: ${{ secrets.GPM_URL }}
-#           AMPRON_CONFIG_URL: ${{ secrets.AMPRON_CONFIG_URL }}
-#           CAMERA_CONFIG_URL: ${{ secrets.CAMERA_CONFIG_URL }}
-#           HARDWARE_DEBUGGING_URL: ${{ secrets.HARDWARE_DEBUGGING_URL }}
-#           CI: "true"
-
-
-#       - name: Upload Playwright Report
-#         if: failure() || cancelled()
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: playwright-report
-#           path: ./playwright_tests/playwright-report
-#           overwrite: true
-#       - name: Upload Playwright Test Results
-#         if: failure() || cancelled()
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: test_results
-#           path: ./playwright_tests/test_results
-#           if-no-files-found: ignore
-#           overwrite: true
-
-#       - name: Create ADO Bug on Failure
-#         if: failure()
-#         working-directory: .
-#         shell: python {0}
-#         env:
-#           ADO_PAT: ${{ secrets.ADO_PAT }}
-#           ADO_ORG: ${{ secrets.ADO_ORG }}
-#           ADO_PROJECT: ${{ secrets.ADO_PROJECT }}
-#           ADO_AREA_PATH: ${{ secrets.ADO_AREA_PATH }}
-#           GITHUB_EVENT_NAME: ${{ github.event_name }}
-#           MATRIX_PROJECT: ${{ matrix.project }}
-#         run: |
-#           import json, os, sys, base64, urllib.request, urllib.parse, urllib.error, zipfile, tempfile, re
-#           from datetime import datetime, timezone
-#           from pathlib import Path
-
-#           matrix_proj  = os.environ.get('MATRIX_PROJECT', 'unknown')
-
-#           results_path = 'playwright_tests/test_results/results.json'
-#           results_found = os.path.exists(results_path)
-#           if results_found:
-#               with open(results_path, encoding='utf-8') as f:
-#                   results = json.load(f)
-#           else:
-#               print('No results.json found - job likely failed before Playwright ran.')
-#               results = {'suites': []}
-
-#           def strip_ansi(text):
-#               return re.sub(r'\x1b\[[0-9;]*[mGKHFJA-Za-z]', '', text or '')
-
-#           def parse_expected_received(msg):
-#               clean = strip_ansi(msg)
-#               expected = received = None
-#               for line in clean.splitlines():
-#                   stripped = line.strip()
-#                   if stripped.startswith('Expected:') and expected is None:
-#                       expected = stripped[len('Expected:'):].strip()
-#                   elif stripped.startswith('Received:') and received is None:
-#                       received = stripped[len('Received:'):].strip()
-#               return expected, received
-
-#           def collect_failures(suites):
-#               out = []
-#               for suite in (suites or []):
-#                   for spec in suite.get('specs', []):
-#                       if not spec.get('ok', True):
-#                           all_res = [r for t in spec.get('tests', []) for r in t.get('results', [])]
-#                           failed_res = [r for r in all_res if r.get('status') in ('failed', 'timedOut')]
-#                           raw_err = (failed_res[-1].get('error', {}).get('message') or 'No error message captured') if failed_res else 'No error message captured'
-#                           expected, received = parse_expected_received(raw_err)
-#                           out.append({
-#                               'title':    spec.get('title', '?'),
-#                               'file':     suite.get('file', suite.get('title', '?')),
-#                               'error':    strip_ansi(raw_err),
-#                               'expected': expected,
-#                               'received': received,
-#                           })
-#                   out.extend(collect_failures(suite.get('suites')))
-#               return out
-
-#           failed = collect_failures(results.get('suites'))
-#           if not failed:
-#               if not results_found:
-#                   failed = [{'title': 'Job failed before tests ran', 'file': 'N/A', 'error': 'No test results found. The job likely failed during setup (dependency install, browser setup, etc.).'}]
-#               else:
-#                   print('No failed tests found in results.json - skipping bug creation.')
-#                   sys.exit(0)
-
-#           required = ['ADO_PAT', 'ADO_ORG', 'ADO_PROJECT', 'ADO_AREA_PATH', 'GITHUB_RUN_ID', 'GITHUB_REPOSITORY']
-#           missing  = [k for k in required if not os.environ.get(k)]
-#           if missing:
-#               print(f'ADO secrets not configured ({", ".join(missing)}) - skipping bug creation.')
-#               sys.exit(0)
-
-#           pat       = os.environ['ADO_PAT'].strip()
-#           auth      = base64.b64encode(f':{pat}'.encode()).decode()
-#           org       = os.environ['ADO_ORG'].strip()
-#           project   = os.environ['ADO_PROJECT'].strip()
-#           area_path = os.environ['ADO_AREA_PATH'].strip()
-#           run_id    = os.environ['GITHUB_RUN_ID']
-#           repo      = os.environ['GITHUB_REPOSITORY']
-
-#           event       = os.environ.get('GITHUB_EVENT_NAME', 'unknown')
-#           trigger_tag = 'nightly-run' if event == 'schedule' else 'manual-run'
-#           now_utc   = datetime.now(timezone.utc)
-#           today     = now_utc.strftime('%Y-%m-%d')
-#           time_utc  = now_utc.strftime('%H:%M UTC')
-#           title     = f'Playwright CI Failure [{matrix_proj}] - {today}'
-#           run_url   = f'https://github.com/{repo}/actions/runs/{run_id}'
-
-#           org_enc     = urllib.parse.quote(org, safe='')
-#           project_enc = urllib.parse.quote(project, safe='')
-
-#           opener      = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-#           base_headers = {
-#               'Authorization': f'Basic {auth}',
-#               'Content-Type':  'application/json',
-#           }
-
-#           # --- Zip artifact directories and upload to ADO ---
-#           def zip_directory(source_dir, zip_path):
-#               src = Path(source_dir)
-#               if not src.exists():
-#                   return False
-#               with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-#                   for file_path in src.rglob('*'):
-#                       if file_path.is_file():
-#                           zf.write(file_path, file_path.relative_to(src.parent))
-#               return True
-
-#           def upload_ado_attachment(zip_path, filename):
-#               url = (
-#                   f'https://dev.azure.com/{org_enc}/{project_enc}/_apis/wit/attachments'
-#                   f'?api-version=7.1&fileName={urllib.parse.quote(filename, safe="")}'
-#               )
-#               with open(zip_path, 'rb') as f:
-#                   data = f.read()
-#               req = urllib.request.Request(url, data=data, method='POST', headers={
-#                   'Authorization': f'Basic {auth}',
-#                   'Content-Type': 'application/octet-stream',
-#               })
-#               try:
-#                   with opener.open(req) as resp:
-#                       result = json.loads(resp.read().decode('utf-8-sig'))
-#                       return result.get('url')
-#               except urllib.error.HTTPError as e:
-#                   body = e.read().decode('utf-8-sig', errors='replace')
-#                   print(f'WARNING: Failed to upload {filename}: {e.code} -- {body}', file=sys.stderr)
-#                   return None
-
-#           attachments = []
-#           with tempfile.TemporaryDirectory() as tmpdir:
-#               for source_dir, zip_name in [
-#                   ('playwright_tests/playwright-report', f'playwright-report-{matrix_proj}.zip'),
-#                   ('playwright_tests/test_results',      f'test-results-{matrix_proj}.zip'),
-#               ]:
-#                   zip_path = os.path.join(tmpdir, zip_name)
-#                   if zip_directory(source_dir, zip_path):
-#                       att_url = upload_ado_attachment(zip_path, zip_name)
-#                       if att_url:
-#                           attachments.append({'name': zip_name, 'url': att_url})
-#                           print(f'Uploaded: {zip_name}')
-#                   else:
-#                       print(f'Skipped (not found): {source_dir}')
-
-#           # --- Build description ---
-#           def esc(s):
-#               return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
-
-#           test_sections = []
-#           for t in failed:
-#               file_path = t['file']
-#               file_name = os.path.basename(file_path)
-#               sec  = f'<p><strong>Test:</strong> {esc(t["title"])}</p>'
-#               sec += f'<p><strong>Test File:</strong> <code>{esc(file_name)}</code><br>'
-#               sec += f'<strong>Test Path:</strong> <code>{esc(file_path)}</code></p>'
-#               if t.get('expected'):
-#                   sec += f'<p><strong>Expected Result:</strong><br><code>{esc(t["expected"])}</code></p>'
-#               if t.get('received'):
-#                   sec += f'<p><strong>Actual Result:</strong><br><code>{esc(t["received"])}</code></p>'
-#               test_sections.append(sec)
-
-#           test_html = ''.join(test_sections)
-#           details   = ''.join(
-#               f'<p><strong>{esc(t["title"])}</strong></p><pre>{esc(t["error"][:800])}</pre>'
-#               for t in failed
-#           )
-#           att_links = ''.join(
-#               f'<li><a href="{esc(a["url"])}">{esc(a["name"])}</a></li>'
-#               for a in attachments
-#           ) if attachments else '<li>No attachments uploaded</li>'
-
-#           description = (
-#               f'<p><strong>Date:</strong> {today}<br>'
-#               f'<strong>Time:</strong> {time_utc}<br>'
-#               f'<strong>Project:</strong> {esc(matrix_proj)}<br>'
-#               f'<strong>GitHub Run:</strong> <a href="{run_url}">View workflow run and artifacts</a></p>'
-#               f'<h3>Failed Tests ({len(failed)})</h3>'
-#               f'{test_html}'
-#               f'<h3>Error Details</h3>{details}'
-#               f'<h3>Attachments</h3>'
-#               f'<ul>{att_links}</ul>'
-#               f'<h3>Trace Viewer</h3>'
-#               f'<p>Download <code>test-results-{esc(matrix_proj)}.zip</code> from this bug\'s attachments, '
-#               f'extract it, then open a trace with:<br>'
-#               f'<code>npx playwright show-trace &lt;path/to/trace.zip&gt;</code><br>'
-#               f'Or drag a trace file onto <a href="https://trace.playwright.dev">trace.playwright.dev</a>.</p>'
-#               f'<hr><p><em>Created automatically by the Playwright CI workflow. Close this bug once investigated.</em></p>'
-#           )
-
-#           payload = json.dumps([
-#               {'op': 'add', 'path': '/fields/System.Title',                    'value': title},
-#               {'op': 'add', 'path': '/fields/Microsoft.VSTS.TCM.ReproSteps',   'value': description},
-#               {'op': 'add', 'path': '/fields/System.Tags',                     'value': f'ci-failure; automated; {trigger_tag}'},
-#               {'op': 'add', 'path': '/fields/System.AreaPath',                 'value': area_path},
-#           ]).encode('utf-8')
-
-#           # --- Duplicate check: query for a Bug with today's title ---
-#           title_esc   = title.replace("'", "''")
-#           project_esc = project.replace("'", "''")
-#           wiql_url  = f'https://dev.azure.com/{org_enc}/{project_enc}/_apis/wit/wiql?api-version=7.1'
-#           wiql_body = json.dumps({'query': (
-#               f"SELECT [System.Id] FROM WorkItems "
-#               f"WHERE [System.WorkItemType] = 'Bug' "
-#               f"AND [System.Title] = '{title_esc}'  "
-#               f"AND [System.TeamProject] = '{project_esc}'  "
-#               f"AND [System.State] <> 'Closed'"
-#           )}).encode('utf-8')
-#           wiql_req = urllib.request.Request(wiql_url, data=wiql_body, method='POST', headers=base_headers)
-#           try:
-#               with opener.open(wiql_req) as wr:
-#                   wiql_result = json.loads(wr.read().decode('utf-8-sig'))
-#           except urllib.error.HTTPError as e:
-#               body = e.read().decode('utf-8-sig', errors='replace')
-#               print(f'ERROR: WIQL duplicate check failed: {e.code} -- {body}', file=sys.stderr)
-#               sys.exit(1)
-
-#           if wiql_result.get('workItems'):
-#               existing_id = wiql_result['workItems'][0]['id']
-#               print(f'Duplicate bug already exists (#{existing_id}) for today - skipping creation.')
-#               sys.exit(0)
-
-#           # --- Create new Bug ---
-#           create_url = f'https://dev.azure.com/{org_enc}/{project_enc}/_apis/wit/workitems/%24Bug?api-version=7.1'
-#           req = urllib.request.Request(create_url, data=payload, method='POST', headers={
-#               'Authorization': f'Basic {auth}',
-#               'Content-Type':  'application/json-patch+json',
-#           })
-
-#           try:
-#               with opener.open(req) as resp:
-#                   bug = json.loads(resp.read().decode('utf-8-sig'))
-#                   bug_id = bug['id']
-#                   print(f'Created ADO Bug #{bug_id}: {bug.get("_links", {}).get("html", {}).get("href", create_url)}')
-#           except urllib.error.HTTPError as e:
-#               body = e.read().decode('utf-8-sig', errors='replace')
-#               print(f'ERROR: Failed to create ADO Bug: {e.code} -- {body}', file=sys.stderr)
-#               sys.exit(1)
-
-#           # --- Attach zip files to the bug ---
-#           if attachments:
-#               attach_ops = [
-#                   {'op': 'add', 'path': '/relations/-', 'value': {
-#                       'rel': 'AttachedFile',
-#                       'url': att['url'],
-#                       'attributes': {'comment': att['name']},
-#                   }}
-#                   for att in attachments
-#               ]
-#               patch_url = f'https://dev.azure.com/{org_enc}/{project_enc}/_apis/wit/workitems/{bug_id}?api-version=7.1'
-#               patch_req = urllib.request.Request(
-#                   patch_url,
-#                   data=json.dumps(attach_ops).encode('utf-8'),
-#                   method='PATCH',
-#                   headers={
-#                       'Authorization': f'Basic {auth}',
-#                       'Content-Type':  'application/json-patch+json',
-#                   },
-#               )
-#               try:
-#                   with opener.open(patch_req) as resp:
-#                       print(f'Attached {len(attachments)} file(s) to Bug #{bug_id}')
-#               except urllib.error.HTTPError as e:
-#                   body = e.read().decode('utf-8-sig', errors='replace')
-#                   print(f'WARNING: Failed to attach files to bug: {e.code} -- {body}', file=sys.stderr)
+      - name: Upload Playwright report and results
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
